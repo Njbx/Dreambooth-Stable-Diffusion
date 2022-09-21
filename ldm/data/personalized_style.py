@@ -1,56 +1,19 @@
 import os
 import numpy as np
 import PIL
+from pathlib import Path
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 
 import random
 
-imagenet_templates_small = [
-    'a painting in the style of {}',
-    'a rendering in the style of {}',
-    'a cropped painting in the style of {}',
-    'the painting in the style of {}',
-    'a clean painting in the style of {}',
-    'a dirty painting in the style of {}',
-    'a dark painting in the style of {}',
-    'a picture in the style of {}',
-    'a cool painting in the style of {}',
-    'a close-up painting in the style of {}',
-    'a bright painting in the style of {}',
-    'a cropped painting in the style of {}',
-    'a good painting in the style of {}',
-    'a close-up painting in the style of {}',
-    'a rendition in the style of {}',
-    'a nice painting in the style of {}',
-    'a small painting in the style of {}',
-    'a weird painting in the style of {}',
-    'a large painting in the style of {}',
+training_templates_smallest = [
+    'a {} {}',
 ]
 
-imagenet_dual_templates_small = [
-    'a painting in the style of {} with {}',
-    'a rendering in the style of {} with {}',
-    'a cropped painting in the style of {} with {}',
-    'the painting in the style of {} with {}',
-    'a clean painting in the style of {} with {}',
-    'a dirty painting in the style of {} with {}',
-    'a dark painting in the style of {} with {}',
-    'a cool painting in the style of {} with {}',
-    'a close-up painting in the style of {} with {}',
-    'a bright painting in the style of {} with {}',
-    'a cropped painting in the style of {} with {}',
-    'a good painting in the style of {} with {}',
-    'a painting of one {} in the style of {}',
-    'a nice painting in the style of {} with {}',
-    'a small painting in the style of {} with {}',
-    'a weird painting in the style of {} with {}',
-    'a large painting in the style of {} with {}',
-]
-
-per_img_token_list = [
-    'א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ', 'ק', 'ר', 'ש', 'ת',
+reg_templates_smallest = [
+    'a {}',
 ]
 
 class PersonalizedBase(Dataset):
@@ -61,9 +24,12 @@ class PersonalizedBase(Dataset):
                  interpolation="bicubic",
                  flip_p=0.5,
                  set="train",
-                 placeholder_token="*",
+                 placeholder_token="dog",
                  per_image_tokens=False,
                  center_crop=False,
+                 mixing_prob=0.25,
+                 coarse_class_text=None,
+                 reg = False
                  ):
 
         self.data_root = data_root
@@ -78,6 +44,9 @@ class PersonalizedBase(Dataset):
 
         self.per_image_tokens = per_image_tokens
         self.center_crop = center_crop
+        self.mixing_prob = mixing_prob
+
+        self.coarse_class_text = coarse_class_text
 
         if per_image_tokens:
             assert self.num_images < len(per_img_token_list), f"Can't use per-image tokens when the training set contains more than {len(per_img_token_list)} tokens. To enable larger sets, add more tokens to 'per_img_token_list'."
@@ -92,6 +61,7 @@ class PersonalizedBase(Dataset):
                               "lanczos": PIL.Image.LANCZOS,
                               }[interpolation]
         self.flip = transforms.RandomHorizontalFlip(p=flip_p)
+        self.reg = reg
 
     def __len__(self):
         return self._length
@@ -102,11 +72,19 @@ class PersonalizedBase(Dataset):
 
         if not image.mode == "RGB":
             image = image.convert("RGB")
-
-        if self.per_image_tokens and np.random.uniform() < 0.25:
-            text = random.choice(imagenet_dual_templates_small).format(self.placeholder_token, per_img_token_list[i % self.num_images])
+            
+        placeholder_string = self.placeholder_token
+        pathname = Path(self.image_paths[i % self.num_images]).name
+        placeholder_token = pathname.split("_")[0]
+        
+        if self.coarse_class_text:
+            placeholder_string = f"{self.coarse_class_text} {placeholder_string}"
+        
+        if not self.reg:
+            #You only need to use 1 template for Dreambooth, but you can try more if you wished (not recommended)
+            text = random.choice(training_templates_smallest).format(placeholder_token, placeholder_string)
         else:
-            text = random.choice(imagenet_templates_small).format(self.placeholder_token)
+            text = random.choice(reg_templates_smallest).format(placeholder_string)
             
         example["caption"] = text
 
