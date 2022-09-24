@@ -118,3 +118,5 @@ lightning:
   trainer:
     benchmark: True
     max_steps: 3000
+    precision: 16
+    amp_backend: native
