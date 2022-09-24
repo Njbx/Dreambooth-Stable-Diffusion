@@ -168,6 +168,7 @@ class CrossAttention(nn.Module):
         )
 
     def forward(self, x, context=None, mask=None):
+        with autocast('cuda'):
         h = self.heads
 
         q = self.to_q(x)
