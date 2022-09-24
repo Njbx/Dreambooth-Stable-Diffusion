@@ -11,6 +11,7 @@ from omegaconf import OmegaConf
 from torch.utils.data import random_split, DataLoader, Dataset, Subset
 from functools import partial
 from PIL import Image
+from torch import autocast
 
 from pytorch_lightning import seed_everything
 from pytorch_lightning.trainer import Trainer
