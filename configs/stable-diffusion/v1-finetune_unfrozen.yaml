@@ -44,7 +44,7 @@ model:
         use_spatial_transformer: True
         transformer_depth: 1
         context_dim: 768
-        use_checkpoint: True
+        use_checkpoint: False
         legacy: False
 
     first_stage_config:
@@ -76,8 +76,8 @@ model:
 data:
   target: main.DataModuleFromConfig
   params:
-    batch_size: 1
-    num_workers: 2
+    batch_size: 2
+    num_workers: 1
     wrap: false
     train:
       target: ldm.data.personalized.PersonalizedBase
@@ -112,7 +112,7 @@ lightning:
       target: main.ImageLogger
       params:
         batch_frequency: 250
-        max_images: 8
+        max_images: 4
         increase_log_steps: False
 
   trainer:
