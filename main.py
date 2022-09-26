@@ -607,7 +607,6 @@ if __name__ == "__main__":
     try:
         # init and save configs
         configs = [OmegaConf.load(cfg) for cfg in opt.base]
-        trainer_config["accelerator"] = "ddp"
         cli = OmegaConf.from_dotlist(unknown)
         config = OmegaConf.merge(*configs, cli)
         lightning_config = config.pop("lightning", OmegaConf.create())
